@@ -5,8 +5,6 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True)
     password_hash = db.Column(db.String(100))
     
-    course = db.relationship("Course", back_populates="instrutor")
-
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True)

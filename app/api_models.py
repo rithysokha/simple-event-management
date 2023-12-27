@@ -1,27 +1,28 @@
 from flask_restx import fields
 from .extensions import api
 
-course_model = api.model("Course", {
+guest_output_model = api.model("GuestOutput", {
     "id": fields.Integer,
     "name": fields.String,
-    # "students": fields.List(fields.Nested(student_model))  
+    "gender": fields.String
 })
 
-student_model = api.model("Student", {
+event_output_model = api.model("EventOutput", {
     "id": fields.Integer,
     "name": fields.String,
-    "courses": fields.Nested(course_model)
-    })
-
-course_input_model = api.model("CourseInput", {
-    "name": fields.String(required=True)
-    })
-
-login_model = api.model("Login", {
-    "username": fields.String,
-    "password": fields.String
+    "date": fields.DateTime,
+    "location": fields.String,
+    "guests": fields.List(fields.Nested(guest_output_model))
 })
-user_model = api.model("User", {
-    "id": fields.Integer,
-    "username": fields.String
+
+guest_input_model = api.model("GuestOutput", {
+    "name": fields.String,
+    "gender": fields.String
+})
+
+event_intput_model = api.model("EventOutput", {
+    "name": fields.String,
+    "date": fields.DateTime,
+    "location": fields.String,
+    "guests": fields.List(fields.Nested(guest_input_model))
 })
