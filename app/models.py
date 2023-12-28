@@ -5,6 +5,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True)
     password_hash = db.Column(db.String(100))
+    events = db.relationship("Event", back_populates="user")
 
 
 class Event(db.Model):
@@ -13,7 +14,8 @@ class Event(db.Model):
     date = db.Column(db.String(100))
     location = db.Column(db.String(100))
     guests = db.relationship("Guest", back_populates="event")
-
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship("User", back_populates="events")
 
 class Guest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
