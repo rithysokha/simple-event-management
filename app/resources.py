@@ -3,7 +3,7 @@ from flask_restx import Namespace, Resource
 from .extensions import db
 from .models import *
 from .api_models import *
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, current_user, get_jwt_identity, get_jwt
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 
 authorizations = {
