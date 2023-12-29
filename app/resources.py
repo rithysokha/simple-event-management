@@ -16,7 +16,8 @@ authorizations = {
 
 ns = Namespace('api', authorizations=authorizations)
 uns = Namespace('auth', authorizations=authorizations)
-
+no_event_fount_message = 'No event found'
+no_guest_found_message = 'No guest found'
 # USER
 @uns.route('/signup')
 class Users(Resource):
@@ -26,52 +27,60 @@ class Users(Resource):
         user_input = User(username=ns.payload['username'], password_hash=generate_password_hash(ns.payload['password']))
         db.session.add(user_input)
         db.session.commit()
-        return  201
+        return 'Sign up succeful', 201
 
 @uns.route('/login')
 class Login(Resource):
-    @uns.expect(user_input_model)
+    @uns.expect(user_login_model)
     def post(self):
         """Login a user"""
         user_input = User.query.filter_by(username=ns.payload['username']).first()
         if user_input and check_password_hash(user_input.password_hash, ns.payload['password']):
-            return {'access_token': create_access_token(identity=user_input.username)}, 200
+            return {'access_token': create_access_token(identity=user_input.id)}, 200
         else: return {'message': 'Invalid username or password'}, 401
     
 
 # EVENT
 @ns.route('/events')
 class Events(Resource):
+    @ns.doc(security='jsonWebToken')
+    @jwt_required()
     @ns.marshal_list_with(event_output_model)
     def get(self):
         """Get all events"""
-        event_output = Event.query.all()
+        event_output = Event.query.filter_by(user_id = get_jwt_identity()).all()
         if event_output:
             return event_output
-        else: return {'message': 'No events found'}, 404
+        else: return {'message': no_event_fount_message}, 404
 
     @ns.expect(event_intput_model)
     @ns.marshal_with(event_output_model)
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
     def post(self):
         """Create a new event"""
-        event_input = Event(**ns.payload)
+        event_input = Event(name=ns.payload['name'], date=ns.payload['date'], location=ns.payload['location'], user_id =get_jwt_identity())
         db.session.add(event_input)
         db.session.commit()
         return event_input, 201
 
 # a single event
-@ns.route('/events/<int:id>')
+@ns.route('/events/<int:eid>')
 class OneEvent(Resource):
     @ns.marshal_with(event_output_model)
-    def get(self, id):
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
+    def get(self, eid):
         """Get a single event"""
-        event_output = Event.query.get(id)
+        event_output = Event.query.filter_by(user_id = get_jwt_identity(), id = eid).first()
         if event_output:
             return event_output
-        else: return {'message': 'No event found'}, 404
+        else: return {'message': no_event_fount_message}, 404
 
     @ns.expect(event_update_model)
     @ns.marshal_with(event_output_model)
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
     def put(self, id):
         """Update a single event"""
         event_output = Event.query.get(id)
@@ -81,8 +90,9 @@ class OneEvent(Resource):
             event_output.location = ns.payload['location']
             db.session.commit()
             return event_output
-        else: return {'message': 'No event found'}, 404
-    
+        else: return {'message': no_event_fount_message}, 404
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
     def delete(self, id):
         """Delete a single event"""
         event_output = Event.query.get(id)
@@ -90,23 +100,27 @@ class OneEvent(Resource):
             db.session.delete(event_output)
             db.session.commit()
             return {'message': 'Event deleted'}, 200
-        else: return {'message': 'No event found'}, 404
+        else: return {'message': no_event_fount_message}, 404
 
 #  all guests for a single event
 @ns.route('/events/<int:id>/guests')
 class Guests(Resource):
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
     @ns.marshal_list_with(guest_output_model)
     def get(self, id):
         """Get all guests for a single event"""
         guests_output = Guest.query.filter_by(event_id=id).all()  
         if guests_output:
             return guests_output
-        else: return {'message': 'No guests found'}, 404
+        else: return {'message': no_guest_found_message}, 404
 
 
 #GENDER 
 @ns.route('/genders')
 class Genderss(Resource):
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
     @ns.marshal_list_with(gender_output_model)
     def get(self):
         genderr = Gender.query.all()
@@ -116,16 +130,20 @@ class Genderss(Resource):
     
     @ns.expect(gender_input_model)
     @ns.marshal_with(gender_output_model)
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
     def post(self):
         gender = Gender(**ns.payload)
         db.session.add(gender)
         db.session.commit()
-        return "Gender added", 201
+        return gender, 201
     
 @ns.route('/genders/<int:id>')
 class OneGender(Resource):
     @ns.expect(gender_input_model)
     @ns.marshal_with(gender_output_model)
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
     def put(self, id):
         gender = Gender.query.get(id)
         if gender:
@@ -142,18 +160,22 @@ class OneGender(Resource):
 @ns.route('/guests')
 class GetAllGuests(Resource):
     @ns.marshal_list_with(guest_output_model)
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
     def get(self):
         """Get all guests"""
         guests_output = Guest.query.all()
         if guests_output:
             return guests_output
-        else: return {'message': 'No guests found'}, 404
+        else: return {'message': no_guest_found_message}, 404
 
     @ns.expect(guest_input_model)
-    @ns.marshal_with(guest_output_model)
+    @ns.marshal_with(guest_input_model)
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
     def post(self):
         """Create a new guest"""
-        guest_input = Guest(**ns.payload)
+        guest_input = Guest(name=ns.payload['name'], gender_id = ns.payload['gender_id'], event_id = ns.payload['event_id'])
         db.session.add(guest_input)
         db.session.commit()
         return guest_input, 201
@@ -161,6 +183,8 @@ class GetAllGuests(Resource):
 class OneGuest(Resource):
     @ns.expect(guest_input_model)
     @ns.marshal_with(guest_output_model)
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
     def put(self, id):
         """Update a single guest"""
         guest = Guest.query.get(id)
@@ -170,8 +194,10 @@ class OneGuest(Resource):
             guest.event_id = ns.payload['event_id']
             db.session.commit()
             return guest
-        else: return {'message': 'No guest found'}, 404
+        else: return {'message': no_guest_found_message}, 404
 
+    @jwt_required()
+    @ns.doc(security='jsonWebToken')
     def delete(self, id):
         """Delete a single guest"""
         guest = Guest.query.get(id)
@@ -179,4 +205,4 @@ class OneGuest(Resource):
             db.session.delete(guest)
             db.session.commit()
             return {'message': 'Guest deleted'}, 200
-        else: return {'message': 'No guest found'}, 404
+        else: return {'message': no_guest_found_message}, 404
