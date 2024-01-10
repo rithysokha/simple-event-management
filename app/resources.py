@@ -81,9 +81,9 @@ class OneEvent(Resource):
     @ns.marshal_with(event_output_model)
     @jwt_required()
     @ns.doc(security='jsonWebToken')
-    def put(self, id):
+    def put(self, eid):
         """Update a single event"""
-        event_output = Event.query.get(id)
+        event_output = Event.query.filter_by(user_id = get_jwt_identity(), id = eid).first()
         if(event_output):
             event_output.name = ns.payload['name']
             event_output.date = ns.payload['date']
@@ -93,9 +93,9 @@ class OneEvent(Resource):
         else: return {'message': no_event_fount_message}, 404
     @jwt_required()
     @ns.doc(security='jsonWebToken')
-    def delete(self, id):
+    def delete(self, eid):
         """Delete a single event"""
-        event_output = Event.query.get(id)
+        event_output = Event.query.filter_by(user_id = get_jwt_identity(), id = eid).first()
         if event_output: 
             db.session.delete(event_output)
             db.session.commit()
@@ -149,12 +149,13 @@ class OneGender(Resource):
         if gender:
             gender.name = ns.payload['name']
             db.session.commit()
-            return "Gender updated", 200
+            return gender, "Gender updated"
         else: return "nothing found", 404
     
     def delete(self, id):
         db.session.delete(Gender.query.get(id))
         db.session.commit()
+        return "gender deleted", 200
 
 # GUEST
 @ns.route('/guests')
